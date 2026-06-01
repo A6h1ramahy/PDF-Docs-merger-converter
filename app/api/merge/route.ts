@@ -58,24 +58,27 @@ export async function POST(req: NextRequest) {
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
-      return NextResponse.json({ error: 'Failed to store merged file' }, { status: 500 });
+      return NextResponse.json({ error: `Failed to store merged file: ${uploadError.message}` }, { status: 500 });
     }
 
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+    console.log(`Inserting session into DB: token=${token}, type=${fileType}`);
 
-    const { error: dbError } = await supabaseAdmin.from('sessions').insert({
+    const { data: dbData, error: dbError } = await supabaseAdmin.from('sessions').insert({
       token,
       file_path: storagePath,
       file_name: outputFilename,
       file_type: fileType,
       expires_at: expiresAt,
-    });
+    }).select();
 
     if (dbError) {
       console.error('DB insert error:', dbError);
       await supabaseAdmin.storage.from('merged-files').remove([storagePath]);
-      return NextResponse.json({ error: 'Failed to create session' }, { status: 500 });
+      return NextResponse.json({ error: `Failed to create session: ${dbError.message}` }, { status: 500 });
     }
+    
+    console.log('Session inserted successfully:', dbData);
 
     return NextResponse.json({
       token,

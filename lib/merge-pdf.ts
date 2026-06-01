@@ -13,7 +13,7 @@ export async function mergePDFs(files: FileWithOrder[]): Promise<Buffer> {
   const mergedPdf = await PDFDocument.create();
 
   for (const file of sorted) {
-    const pdfDoc = await PDFDocument.load(file.buffer);
+    const pdfDoc = await PDFDocument.load(file.buffer, { ignoreEncryption: true });
     const pages = await mergedPdf.copyPages(pdfDoc, pdfDoc.getPageIndices());
     pages.forEach((page) => mergedPdf.addPage(page));
   }

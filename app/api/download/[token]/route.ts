@@ -3,10 +3,10 @@ import { supabaseAdmin } from '@/lib/supabase';
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { token: string } }
+  { params }: { params: Promise<{ token: string }> }
 ) {
   try {
-    const { token } = params;
+    const { token } = await params;
 
     const { data: session, error: sessionError } = await supabaseAdmin
       .from('sessions')
@@ -15,7 +15,11 @@ export async function GET(
       .single();
 
     if (sessionError || !session) {
-      return NextResponse.json({ error: 'Link expired or invalid' }, { status: 404 });
+      console.error('Session lookup error:', sessionError);
+      return NextResponse.json({ 
+        error: 'Link expired or invalid', 
+        details: sessionError?.message || 'Token not found in database'
+      }, { status: 404 });
     }
 
     if (new Date(session.expires_at) < new Date()) {

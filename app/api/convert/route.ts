@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
 
     if (uploadError) {
       console.error('Storage upload error:', uploadError);
-      return NextResponse.json({ error: 'Failed to store converted file' }, { status: 500 });
+      return NextResponse.json({ error: `Failed to store converted file: ${uploadError.message}` }, { status: 500 });
     }
 
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
@@ -93,8 +93,11 @@ export async function POST(req: NextRequest) {
       fileName: outputFilename,
       expiresAt,
     });
-  } catch (err) {
+  } catch (err: any) {
     console.error('Conversion error:', err);
+    if (err.cause?.status === 402) {
+      return NextResponse.json({ error: 'CloudConvert Free Limit Reached. Please wait 24 hours or use a different API key.' }, { status: 402 });
+    }
     return NextResponse.json({ error: 'Conversion failed: ' + (err as Error).message }, { status: 500 });
   }
 }
